@@ -7,6 +7,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.utils import secure_filename
 from markitdown import MarkItDown
 from models import init_db, get_session, init_default_user, init_default_config, User, Conversion, AppConfig
+from ocr_utils import convert_pdf_with_ocr_fallback
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -184,9 +185,12 @@ def convert_document():
         # Get file size
         file_size = os.path.getsize(filepath)
         
-        # Convert to markdown using MarkItDown
-        result = md.convert(filepath)
-        markdown_content = result.text_content
+        # Convert to markdown - use OCR for PDFs if needed
+        if filepath.lower().endswith('.pdf'):
+            markdown_content = convert_pdf_with_ocr_fallback(filepath, md)
+        else:
+            result = md.convert(filepath)
+            markdown_content = result.text_content
         
         # Save to database
         conversion = Conversion(

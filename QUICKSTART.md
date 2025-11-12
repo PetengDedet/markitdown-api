@@ -6,6 +6,9 @@ Get the MarkItDown API up and running in 3 minutes!
 
 - Python 3.8 or higher
 - pip package manager
+- **For OCR support (scanned PDFs):**
+  - Tesseract OCR
+  - Poppler utils
 
 ## Installation Steps
 
@@ -15,12 +18,31 @@ git clone https://github.com/PetengDedet/markitdown-api.git
 cd markitdown-api
 ```
 
-### 2. Install Dependencies
+### 2. Install System Dependencies (for OCR)
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install -y tesseract-ocr poppler-utils
+```
+
+**macOS:**
+```bash
+brew install tesseract poppler
+```
+
+**Windows:**
+- Download [Tesseract OCR installer](https://github.com/UB-Mannheim/tesseract/wiki)
+- Download [Poppler for Windows](https://blog.alivate.com.au/poppler-windows/)
+
+*Note: Skip this step if you only need to process text-based PDFs and other document formats.*
+
+### 3. Install Python Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Run the Application
+### 4. Run the Application
 ```bash
 python app.py
 ```
@@ -30,11 +52,11 @@ You should see:
 * Running on http://127.0.0.1:5000
 ```
 
-### 4. Access the Application
+### 5. Access the Application
 
 Open your browser and go to: **http://localhost:5000**
 
-### 5. Login
+### 6. Login
 
 Use the default credentials:
 - **Username**: `admin`
@@ -65,12 +87,14 @@ Go to **"Settings"** to:
 ## Supported File Types
 
 By default, the application supports:
-- PDF documents (`.pdf`)
+- PDF documents (`.pdf`) - **including scanned PDFs with OCR**
 - Word documents (`.docx`, `.doc`)
 - Text files (`.txt`)
 - HTML files (`.html`, `.htm`)
 - PowerPoint (`.pptx`)
 - Excel (`.xlsx`)
+
+**OCR Feature**: The application automatically detects scanned PDFs (image-only) and uses OCR to extract text. No special action is needed - just upload your scanned PDF and it will be processed automatically!
 
 You can modify these in the Settings page.
 
