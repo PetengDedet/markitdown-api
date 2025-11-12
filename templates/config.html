@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - MarkItDown API{% endblock %}
+
+{% block content %}
+<div class="config-container">
+    <h1>Application Settings</h1>
+    
+    <form method="POST" action="{{ url_for('config_page') }}">
+        <div class="config-section">
+            <h2>Account Settings</h2>
+            
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" value="{{ username }}" required>
+                <small>Change your login username</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">New Password</label>
+                <input type="password" id="password" name="password">
+                <small>Leave blank to keep current password</small>
+            </div>
+        </div>
+        
+        <div class="config-section">
+            <h2>Application Configuration</h2>
+            
+            <div class="form-group">
+                <label for="allowed_extensions">Allowed File Extensions</label>
+                <input type="text" id="allowed_extensions" name="allowed_extensions" value="{{ allowed_extensions }}" required>
+                <small>Comma-separated list (e.g., .pdf,.docx,.txt)</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="max_file_size">Max File Size (bytes)</label>
+                <input type="number" id="max_file_size" name="max_file_size" value="{{ max_file_size }}" required>
+                <small>Maximum file size in bytes (e.g., 10485760 for 10MB)</small>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+</div>
+{% endblock %}
