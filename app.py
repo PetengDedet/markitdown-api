@@ -1,10 +1,10 @@
 """Main Flask application for markitdown API."""
 import os
 from datetime import datetime
+from urllib.parse import urlparse
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session as flask_session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
-from werkzeug.urls import url_parse
 from markitdown import MarkItDown
 from models import init_db, get_session, init_default_user, init_default_config, User, Conversion, AppConfig
 
@@ -72,7 +72,7 @@ def login():
             # Validate next_page to prevent open redirect vulnerability
             # Only allow relative URLs (no scheme or netloc)
             if next_page:
-                parsed = url_parse(next_page)
+                parsed = urlparse(next_page)
                 # Check if it's a relative URL with no external domain
                 if parsed.netloc == '' and parsed.scheme == '':
                     return redirect(next_page)
