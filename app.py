@@ -4,6 +4,7 @@ from datetime import datetime
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session as flask_session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
+from werkzeug.urls import url_parse
 from markitdown import MarkItDown
 from models import init_db, get_session, init_default_user, init_default_config, User, Conversion, AppConfig
 
@@ -68,7 +69,10 @@ def login():
         if user and user.check_password(password):
             login_user(user)
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('upload_page'))
+            # Validate next_page to prevent open redirect vulnerability
+            if next_page and url_parse(next_page).netloc == '':
+                return redirect(next_page)
+            return redirect(url_for('upload_page'))
         else:
             flash('Invalid username or password', 'error')
     
@@ -201,7 +205,9 @@ def convert_document():
         })
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Log the error but don't expose stack trace to user
+        app.logger.error(f"Conversion error: {str(e)}")
+        return jsonify({'error': 'An error occurred during conversion'}), 500
 
 
 @app.route('/api/conversions')
@@ -226,4 +232,7 @@ def get_conversion(conversion_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Use environment variable to control debug mode
+    # Never set debug=True in production
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000)
