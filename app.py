@@ -70,8 +70,12 @@ def login():
             login_user(user)
             next_page = request.args.get('next')
             # Validate next_page to prevent open redirect vulnerability
-            if next_page and url_parse(next_page).netloc == '':
-                return redirect(next_page)
+            # Only allow relative URLs (no scheme or netloc)
+            if next_page:
+                parsed = url_parse(next_page)
+                # Check if it's a relative URL with no external domain
+                if parsed.netloc == '' and parsed.scheme == '':
+                    return redirect(next_page)
             return redirect(url_for('upload_page'))
         else:
             flash('Invalid username or password', 'error')
