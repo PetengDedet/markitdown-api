@@ -5,6 +5,7 @@ A Flask-based REST API and web interface for converting documents to Markdown fo
 ## Features
 
 - 📤 **File Upload & Conversion**: Upload documents (.docx, .pdf, .txt, etc.) and convert them to Markdown
+- 🔍 **OCR Support**: Automatic OCR for scanned PDFs using Tesseract and pdf2image
 - 🔐 **Authentication**: Secure login system with username/password protection
 - ⚙️ **Configuration**: Web interface to manage app settings and credentials
 - 📊 **Recent Conversions**: View history of all document conversions
@@ -17,6 +18,27 @@ A Flask-based REST API and web interface for converting documents to Markdown fo
 
 - Python 3.8 or higher
 - pip (Python package manager)
+- Tesseract OCR (for scanned PDF support)
+- Poppler utils (for PDF to image conversion)
+
+### System Dependencies
+
+For OCR support with scanned PDFs, install the following system packages:
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get update
+sudo apt-get install -y tesseract-ocr poppler-utils
+```
+
+**macOS:**
+```bash
+brew install tesseract poppler
+```
+
+**Windows:**
+- Download and install [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki)
+- Download and install [Poppler for Windows](https://blog.alivate.com.au/poppler-windows/)
 
 ### Setup
 
@@ -37,6 +59,20 @@ python app.py
 ```
 
 The application will start on `http://localhost:5000`
+
+## OCR Support for Scanned PDFs
+
+The application now includes automatic OCR (Optical Character Recognition) support for scanned PDFs. When you upload a PDF:
+
+1. **Text-based PDFs**: Regular PDFs with extractable text are processed using the standard MarkItDown library
+2. **Scanned PDFs**: PDFs without extractable text (image-only) are automatically processed using OCR:
+   - Each page is converted to an image using pdf2image
+   - Text is extracted from images using Tesseract OCR
+   - Extracted text is organized by page and converted to Markdown format
+
+The system automatically detects whether a PDF needs OCR processing, so you don't need to do anything special. Just upload your PDF and the application will handle it appropriately.
+
+**Note**: OCR processing may take longer than regular text extraction, especially for large documents or high-resolution scans.
 
 ## Default Credentials
 
@@ -113,6 +149,7 @@ Response:
 markitdown-api/
 ├── app.py                 # Main Flask application
 ├── models.py              # Database models
+├── ocr_utils.py           # OCR utility functions for scanned PDFs
 ├── requirements.txt       # Python dependencies
 ├── templates/             # HTML templates
 │   ├── base.html
@@ -143,11 +180,18 @@ Application settings can be modified through the web interface or directly in th
 
 ## Dependencies
 
+### Python Packages
 - Flask 3.0.0 - Web framework
 - markitdown 0.0.1a2 - Document to Markdown conversion
 - SQLAlchemy 2.0.23 - Database ORM
 - Flask-Login 0.6.3 - User authentication
-- Werkzeug 3.0.1 - Password hashing and utilities
+- Werkzeug 3.0.3 - Password hashing and utilities
+- pdf2image 1.16.3 - PDF to image conversion for OCR
+- pytesseract 0.3.10 - Python wrapper for Tesseract OCR
+
+### System Dependencies
+- Tesseract OCR - Optical Character Recognition engine for scanned PDFs
+- Poppler utils - PDF rendering library for image conversion
 
 ## License
 
