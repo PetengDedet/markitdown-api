@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Document - MarkItDown API{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <div class="upload-section">
+        <h1>Upload & Convert Document</h1>
+        <p class="subtitle">Upload a document to convert it to Markdown format</p>
+        
+        <div class="upload-box">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" name="file" required>
+                    <label for="fileInput" class="file-label">
+                        <span class="file-icon">📄</span>
+                        <span class="file-text">Choose a file or drag it here</span>
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary" id="uploadBtn">
+                    <span class="btn-text">Convert to Markdown</span>
+                    <span class="spinner" style="display: none;"></span>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="chat-section">
+        <h2>Conversion Results</h2>
+        <div id="chatContainer" class="chat-container">
+            <div class="welcome-message">
+                <p>👋 Welcome! Upload a document above to see the conversion result here.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const uploadForm = document.getElementById('uploadForm');
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+const chatContainer = document.getElementById('chatContainer');
+
+// Update file label when file is selected
+fileInput.addEventListener('change', function() {
+    const fileName = this.files[0]?.name;
+    if (fileName) {
+        document.querySelector('.file-text').textContent = fileName;
+    }
+});
+
+// Handle drag and drop
+const fileLabel = document.querySelector('.file-label');
+
+fileLabel.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    fileLabel.classList.add('drag-over');
+});
+
+fileLabel.addEventListener('dragleave', () => {
+    fileLabel.classList.remove('drag-over');
+});
+
+fileLabel.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileLabel.classList.remove('drag-over');
+    
+    if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        document.querySelector('.file-text').textContent = e.dataTransfer.files[0].name;
+    }
+});
+
+// Handle form submission
+uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const file = fileInput.files[0];
+    if (!file) {
+        addMessage('error', 'Please select a file to upload.');
+        return;
+    }
+    
+    // Show loading state
+    setLoading(true);
+    
+    // Add user message
+    addMessage('user', `Uploading: ${file.name} (${formatFileSize(file.size)})`);
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch('/api/convert', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // Add success message
+            addMessage('assistant', `
+                <div class="conversion-result">
+                    <div class="result-header">
+                        <strong>✅ Conversion Successful!</strong>
+                        <div class="result-meta">
+                            <span>ID: ${data.id}</span> | 
+                            <span>File: ${data.filename}</span> | 
+                            <span>Size: ${formatFileSize(data.file_size)}</span> | 
+                            <span>Time: ${new Date(data.upload_time).toLocaleString()}</span>
+                        </div>
+                    </div>
+                    <div class="markdown-content">
+                        <h4>Markdown Content:</h4>
+                        <pre>${escapeHtml(data.markdown_content)}</pre>
+                    </div>
+                </div>
+            `);
+            
+            // Reset form
+            uploadForm.reset();
+            document.querySelector('.file-text').textContent = 'Choose a file or drag it here';
+        } else {
+            addMessage('error', `Error: ${data.error || 'Unknown error occurred'}`);
+        }
+    } catch (error) {
+        addMessage('error', `Error: ${error.message}`);
+    } finally {
+        setLoading(false);
+    }
+});
+
+function addMessage(type, content) {
+    // Remove welcome message if it exists
+    const welcomeMsg = chatContainer.querySelector('.welcome-message');
+    if (welcomeMsg) {
+        welcomeMsg.remove();
+    }
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${type}-message`;
+    messageDiv.innerHTML = content;
+    chatContainer.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function setLoading(loading) {
+    const btnText = uploadBtn.querySelector('.btn-text');
+    const spinner = uploadBtn.querySelector('.spinner');
+    
+    if (loading) {
+        btnText.style.display = 'none';
+        spinner.style.display = 'inline-block';
+        uploadBtn.disabled = true;
+    } else {
+        btnText.style.display = 'inline';
+        spinner.style.display = 'none';
+        uploadBtn.disabled = false;
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}
