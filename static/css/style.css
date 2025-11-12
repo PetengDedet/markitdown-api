@@ -514,4 +514,122 @@ body {
     .assistant-message {
         margin-right: 0;
     }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Detail Page Styles */
+.detail-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #eee;
+}
+
+.detail-header h1 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.info-card {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.info-card h2 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    font-size: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.info-item {
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0;
+}
+
+.info-item strong {
+    color: #555;
+    display: inline-block;
+    min-width: 120px;
+}
+
+.preview-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+}
+
+.preview-container {
+    margin-top: 1rem;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.preview-image {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 4px;
+}
+
+.markdown-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    height: fit-content;
+}
+
+.markdown-display {
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-top: 1rem;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.markdown-display pre {
+    padding: 1rem;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.action-buttons {
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+.action-buttons .btn {
+    flex: 1;
 }

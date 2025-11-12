@@ -26,10 +26,10 @@
                     <td>{{ conversion.upload_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                     <td>{{ "%.2f"|format(conversion.file_size / 1024) }} KB</td>
                     <td>
-                        <button class="btn btn-small btn-preview" 
-                                onclick="showPreview({{ conversion.id }}, '{{ conversion.filename }}', `{{ conversion.markdown_content[:200]|e }}...`)">
-                            Preview
-                        </button>
+                        <a href="{{ url_for('conversion_detail', conversion_id=conversion.id) }}" 
+                           class="btn btn-small btn-preview">
+                            View Details
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -42,33 +42,4 @@
     </div>
     {% endif %}
 </div>
-
-<!-- Preview Modal -->
-<div id="previewModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closePreview()">&times;</span>
-        <h2 id="previewTitle"></h2>
-        <div id="previewContent" class="markdown-preview"></div>
-    </div>
-</div>
-
-<script>
-function showPreview(id, filename, content) {
-    document.getElementById('previewTitle').textContent = filename;
-    document.getElementById('previewContent').textContent = content;
-    document.getElementById('previewModal').style.display = 'block';
-}
-
-function closePreview() {
-    document.getElementById('previewModal').style.display = 'none';
-}
-
-// Close modal when clicking outside
-window.onclick = function(event) {
-    const modal = document.getElementById('previewModal');
-    if (event.target == modal) {
-        modal.style.display = 'none';
-    }
-}
-</script>
 {% endblock %}
