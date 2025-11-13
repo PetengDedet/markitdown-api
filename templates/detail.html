@@ -49,8 +49,21 @@
         
         <!-- Right column: Markdown content -->
         <div class="detail-section">
+            {% if conversion.summary_content %}
             <div class="info-card markdown-card">
-                <h2>Converted Markdown</h2>
+                <h2>AI-Processed Summary & Corrections</h2>
+                <div class="markdown-display">
+                    <pre>{{ conversion.summary_content }}</pre>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="copySummary()">📋 Copy Summary</button>
+                    <button class="btn btn-small" onclick="downloadSummary()">⬇️ Download Summary</button>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="info-card markdown-card">
+                <h2>{% if conversion.summary_content %}Original {% endif %}Converted Markdown</h2>
                 <div class="markdown-display">
                     <pre>{{ conversion.markdown_content }}</pre>
                 </div>
@@ -64,6 +77,29 @@
 </div>
 
 <script>
+function copySummary() {
+    const summaryText = `{{ conversion.summary_content|e }}`;
+    navigator.clipboard.writeText(summaryText).then(() => {
+        alert('Summary copied to clipboard!');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy summary to clipboard');
+    });
+}
+
+function downloadSummary() {
+    const summaryText = `{{ conversion.summary_content|e }}`;
+    const blob = new Blob([summaryText], { type: 'text/markdown' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '{{ conversion.filename }}'.replace(/\.[^/.]+$/, '_summary.md');
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+}
+
 function copyMarkdown() {
     const markdownText = `{{ conversion.markdown_content|e }}`;
     navigator.clipboard.writeText(markdownText).then(() => {

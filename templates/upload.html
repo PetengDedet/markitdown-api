@@ -101,7 +101,7 @@ uploadForm.addEventListener('submit', async (e) => {
         
         if (response.ok && data.success) {
             // Add success message
-            addMessage('assistant', `
+            let resultHtml = `
                 <div class="conversion-result">
                     <div class="result-header">
                         <strong>✅ Conversion Successful!</strong>
@@ -111,13 +111,26 @@ uploadForm.addEventListener('submit', async (e) => {
                             <span>Size: ${formatFileSize(data.file_size)}</span> | 
                             <span>Time: ${new Date(data.upload_time).toLocaleString()}</span>
                         </div>
-                    </div>
+                    </div>`;
+            
+            // Show summary if available
+            if (data.summary_content) {
+                resultHtml += `
                     <div class="markdown-content">
-                        <h4>Markdown Content:</h4>
+                        <h4>🤖 AI-Processed Summary & Corrections:</h4>
+                        <pre>${escapeHtml(data.summary_content)}</pre>
+                    </div>`;
+            }
+            
+            // Show original markdown
+            resultHtml += `
+                    <div class="markdown-content">
+                        <h4>${data.summary_content ? 'Original Markdown Content:' : 'Markdown Content:'}</h4>
                         <pre>${escapeHtml(data.markdown_content)}</pre>
                     </div>
-                </div>
-            `);
+                </div>`;
+            
+            addMessage('assistant', resultHtml);
             
             // Reset form
             uploadForm.reset();

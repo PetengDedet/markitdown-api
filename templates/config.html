@@ -51,6 +51,53 @@
             </div>
         </div>
         
+        <div class="config-section">
+            <h2>LLM Settings (AI-Powered Summarization & Correction)</h2>
+            
+            <div class="form-group">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" id="llm_enabled" name="llm_enabled" {% if llm_enabled == 'true' %}checked{% endif %}>
+                    <label for="llm_enabled">Enable LLM Processing</label>
+                </div>
+                <small>Process documents with Qwen1.5-1.8B for summarization and correction (requires model download)</small>
+            </div>
+            
+            <div class="form-group">
+                <label>Model Status</label>
+                <div class="status-info">
+                    <span class="status-badge {% if llm_model_info.model_exists %}status-success{% else %}status-warning{% endif %}">
+                        {% if llm_model_info.model_exists %}✓ Model Found{% else %}⚠ Model Not Found{% endif %}
+                    </span>
+                    {% if llm_model_info.model_path %}
+                    <small style="display: block; margin-top: 5px;">Path: {{ llm_model_info.model_path }}</small>
+                    {% else %}
+                    <small style="display: block; margin-top: 5px;">See <a href="https://github.com/PetengDedet/markitdown-api/blob/main/LLM_SETUP.md" target="_blank">LLM_SETUP.md</a> for installation instructions</small>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="llm_task">LLM Task</label>
+                <select id="llm_task" name="llm_task">
+                    <option value="summarize_and_correct" {% if llm_task == 'summarize_and_correct' %}selected{% endif %}>Summarize and Correct</option>
+                    <option value="correct_only" {% if llm_task == 'correct_only' %}selected{% endif %}>Correct Only (No Summarization)</option>
+                </select>
+                <small>Choose whether to summarize content or just correct errors</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="llm_max_tokens">Max Tokens</label>
+                <input type="number" id="llm_max_tokens" name="llm_max_tokens" value="{{ llm_max_tokens }}" min="256" max="4096" required>
+                <small>Maximum length of generated output (256-4096, higher = longer output)</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="llm_temperature">Temperature</label>
+                <input type="number" id="llm_temperature" name="llm_temperature" value="{{ llm_temperature }}" min="0.0" max="1.0" step="0.1" required>
+                <small>Creativity level (0.0-1.0, lower = more focused, higher = more creative)</small>
+            </div>
+        </div>
+        
         <button type="submit" class="btn btn-primary">Save Changes</button>
     </form>
 </div>
