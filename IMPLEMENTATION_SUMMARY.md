@@ -23,14 +23,24 @@ Successfully implemented document summarization and correction using a locally-r
   - `llm_max_tokens`: Maximum output length
   - `llm_temperature`: Sampling temperature
 
-### 3. Application Integration (`app.py`)
+### 3. Database Migration (`migrate_db.py`)
+- **Purpose**: Handle database schema upgrades for existing installations
+- **Features**:
+  - Safely adds `summary_content` column to existing databases
+  - Checks if column already exists (idempotent)
+  - Preserves all existing data
+  - Provides clear status messages
+  - Handles non-existent databases gracefully
+- **Usage**: `python migrate_db.py [database_path]`
+
+### 4. Application Integration (`app.py`)
 - Integrated LLM processing after markdown conversion
 - Added logging for LLM operations
 - Error handling ensures document conversion succeeds even if LLM fails
 - Configuration page updated to manage LLM settings
 - Model status display shows whether model file is available
 
-### 4. User Interface Updates
+### 5. User Interface Updates
 - **config.html**: Added LLM settings section with:
   - Enable/disable toggle
   - Model status indicator
@@ -47,9 +57,10 @@ Successfully implemented document summarization and correction using a locally-r
   - AI-processed summary prominently
   - Original content for reference
 
-### 5. Documentation
+### 6. Documentation
 - **LLM_SETUP.md**: Comprehensive guide covering:
   - Installation instructions
+  - Database migration steps for upgrades
   - Model download methods (manual, CLI, environment variables)
   - Configuration options
   - Performance optimization tips
@@ -57,9 +68,9 @@ Successfully implemented document summarization and correction using a locally-r
   - Troubleshooting guide
   - Security notes
 
-- **README.md**: Updated to mention LLM feature with quick setup instructions
+- **README.md**: Updated to mention LLM feature with quick setup instructions and migration steps
 
-### 6. Testing & Validation
+### 7. Testing & Validation
 - **test_llm_integration.py**: Comprehensive test suite
   - Module imports verification
   - LLM utilities testing
@@ -76,9 +87,21 @@ Successfully implemented document summarization and correction using a locally-r
   - Demonstrates Bahasa Indonesia support
   - Shows typical use case
 
-### 7. Dependencies
+### 8. Dependencies
 - Added `llama-cpp-python==0.2.90` to requirements.txt
 - Verified all dependencies install correctly
+
+## Database Migration
+
+**Critical Feature**: The implementation includes a migration script (`migrate_db.py`) to handle upgrades from previous versions:
+
+- **Purpose**: Adds `summary_content` column to existing databases
+- **Safety**: Checks if migration is needed before making changes
+- **Idempotent**: Can be run multiple times safely
+- **Data Preservation**: All existing conversion records are preserved
+- **User Guidance**: Provides clear instructions for next steps
+
+This ensures users upgrading from older versions can seamlessly adopt the LLM feature without losing their existing data or recreating their database.
 
 ## Technical Highlights
 

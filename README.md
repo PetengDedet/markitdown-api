@@ -73,6 +73,8 @@ MarkItDown API now supports **local AI processing** for document summarization a
 
 ### Quick Setup
 
+**For new installations:**
+
 1. Download the Qwen1.5-1.8B quantized model:
 ```bash
 mkdir -p models
@@ -82,6 +84,15 @@ wget https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat-GGUF/resolve/main/qwen1_5-1_8
 2. Enable LLM processing in the Settings page of the web interface
 
 3. Configure options (task type, max tokens, temperature)
+
+**For upgrading existing installations:**
+
+1. Run the database migration script first:
+```bash
+python migrate_db.py
+```
+
+2. Then follow steps 1-3 above
 
 **For detailed instructions**, see [LLM_SETUP.md](LLM_SETUP.md)
 

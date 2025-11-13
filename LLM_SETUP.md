@@ -29,7 +29,27 @@ pip install -r requirements.txt
 
 This will install `llama-cpp-python`, which provides efficient CPU-based inference for GGUF quantized models.
 
-### 2. Download the Qwen1.5-1.8B Model
+### 2. Migrate Existing Database (If Upgrading)
+
+**Important**: If you are upgrading from a previous version of MarkItDown API and have an existing database, you need to run the migration script to add the new `summary_content` column:
+
+```bash
+# Migrate the default database
+python migrate_db.py
+
+# Or specify a custom database path
+python migrate_db.py /path/to/your/markitdown.db
+```
+
+The migration script will:
+- Check if the `summary_content` column already exists
+- Add the column if it doesn't exist
+- Preserve all existing conversion records (they will have NULL summary_content)
+- Display status messages and confirmation
+
+**Note**: If you're installing for the first time, skip this step - the database will be created with the correct schema automatically.
+
+### 3. Download the Qwen1.5-1.8B Model
 
 You need to download a quantized GGUF version of Qwen1.5-1.8B. We recommend the Q4_K_M quantization for a good balance of quality and performance.
 
