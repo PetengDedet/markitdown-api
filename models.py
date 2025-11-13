@@ -105,8 +105,10 @@ def init_default_user(session):
 def init_default_config(session):
     """Initialize default application configuration."""
     configs = [
-        ('allowed_extensions', '.pdf,.docx,.doc,.txt,.html,.htm,.pptx,.xlsx'),
+        ('allowed_extensions', '.pdf,.docx,.doc,.txt,.html,.htm,.pptx,.xlsx,.png,.jpg,.jpeg,.gif,.bmp,.tiff'),
         ('max_file_size', '10485760'),  # 10MB in bytes
+        ('processing_timeout', '300'),  # 5 minutes in seconds
+        ('max_ocr_pages', '50'),  # Maximum number of pages to process with OCR
     ]
     
     for key, value in configs:
