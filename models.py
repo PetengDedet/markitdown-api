@@ -59,9 +59,17 @@ class Conversion(Base):
     upload_time = Column(DateTime, default=datetime.utcnow)
     file_size = Column(Integer)  # in bytes
     
+    # New analysis fields
+    categories = Column(Text)  # JSON string of predicted categories
+    keywords = Column(Text)  # JSON string of extracted keywords
+    severity = Column(String(50))  # Predicted severity level
+    corrected_content = Column(Text)  # Spell/grammar corrected content
+    
     def to_dict(self):
         """Convert the conversion to a dictionary."""
-        return {
+        import json
+        
+        result = {
             'id': self.id,
             'filename': self.filename,
             'markdown_content': self.markdown_content,
@@ -70,6 +78,28 @@ class Conversion(Base):
             'upload_time': self.upload_time.isoformat(),
             'file_size': self.file_size
         }
+        
+        # Parse JSON fields
+        if self.categories:
+            try:
+                result['categories'] = json.loads(self.categories)
+            except:
+                result['categories'] = None
+        else:
+            result['categories'] = None
+            
+        if self.keywords:
+            try:
+                result['keywords'] = json.loads(self.keywords)
+            except:
+                result['keywords'] = None
+        else:
+            result['keywords'] = None
+        
+        result['severity'] = self.severity
+        result['corrected_content'] = self.corrected_content
+        
+        return result
 
 
 class AppConfig(Base):

@@ -1,17 +1,48 @@
 # MarkItDown API
 
-A Flask-based REST API and web interface for converting documents to Markdown format using the MarkItDown library.
+A Flask-based REST API and web interface for converting documents to Markdown format using the MarkItDown library, with advanced document analysis features.
 
 ## Features
 
+### Core Features
 - 📤 **File Upload & Conversion**: Upload documents (.docx, .pdf, .txt, etc.) and convert them to Markdown
 - 🔍 **OCR Support**: Automatic OCR for scanned PDFs using Tesseract and pdf2image
-- 🤖 **LLM-Powered Summarization**: Local AI processing using Qwen1.5-1.8B for spell-check, grammar correction, and summarization (optional)
 - 🔐 **Authentication**: Secure login system with username/password protection
 - ⚙️ **Configuration**: Web interface to manage app settings and credentials
 - 📊 **Recent Conversions**: View history of all document conversions
 - 💬 **Interactive Interface**: Chat-style UI for uploading and viewing conversion results
 - 🗄️ **Database Storage**: SQLite database for persistent storage of conversions and metadata
+
+### Advanced Document Analysis Features (NEW!)
+Select from multiple analysis options for each document:
+
+- 📝 **Title Prediction**: Automatically generate a suggested title for uploaded documents
+  - Uses LLM-based generation when available, with smart heuristic fallback
+  
+- 📄 **Markdown Extraction**: Extract clean Markdown content from various document formats
+  - Supports .docx, .pdf, .txt, .html, .pptx, .xlsx, and more
+  
+- 🏷️ **Document Categorization**: Predict document categories using keyword-based classification
+  - Multi-label classification supporting Business, Technical, Legal, Financial, etc.
+  - Confidence scores for each predicted category
+  
+- 🔑 **Keyword Extraction**: Extract representative keywords to improve searchability
+  - Frequency-based analysis with stop word filtering
+  - Supports both English and Bahasa Indonesia
+  
+- ⚡ **Severity Classification**: Predict document importance level
+  - Classifies as Critical, Important, Normal, or Low Priority
+  - Based on keyword analysis and content patterns
+  
+- 📊 **Summarization**: Generate concise summaries (requires LLM)
+  - Uses local Qwen1.5-1.8B model for AI-powered summarization
+  - Optimized for Bahasa Indonesia and English
+  
+- ✅ **Correction**: Automatically correct spelling, grammar, and formatting (requires LLM)
+  - Spell-check and grammar correction
+  - Markdown reformatting for better readability
+
+All features run **100% locally** with no external API calls required!
 
 ## Installation
 
@@ -60,6 +91,63 @@ python app.py
 ```
 
 The application will start on `http://localhost:5000`
+
+## Using Document Analysis Features
+
+### Web Interface
+
+1. **Upload a Document**: Navigate to the Upload page and choose a file
+2. **Select Features**: Use the checkboxes to select which analysis features to apply:
+   - ✅ Title Prediction - Generate a document title
+   - ✅ Markdown Extraction - Extract markdown content (always enabled)
+   - ✅ Document Categorization - Classify document into categories
+   - ✅ Keyword Extraction - Extract important keywords
+   - ✅ Severity Classification - Determine document importance
+   - ✅ Summarization - Generate AI summary (requires LLM)
+   - ✅ Correction - Fix spelling/grammar (requires LLM)
+3. **Convert**: Click "Convert to Markdown" to process the document
+4. **View Results**: Results are displayed with visual indicators for each feature
+
+### REST API
+
+Use the `/api/convert` endpoint with feature selection:
+
+```bash
+curl -X POST http://localhost:5000/api/convert \
+  -H "Authorization: Bearer <your-token>" \
+  -F "file=@document.pdf" \
+  -F "features=title_prediction,document_categorization,keyword_extraction"
+```
+
+**Available feature values:**
+- `title_prediction` - Generate title
+- `markdown_extraction` - Extract markdown
+- `document_categorization` - Classify categories
+- `keyword_extraction` - Extract keywords
+- `severity_classification` - Classify severity
+- `summarization` - Generate summary (requires LLM)
+- `correction` - Correct text (requires LLM)
+
+**Response format:**
+```json
+{
+  "success": true,
+  "id": 1,
+  "filename": "document.pdf",
+  "predicted_title": "Business Proposal for Q4 2024",
+  "categories": [
+    {"category": "Business", "confidence": 0.95},
+    {"category": "Proposal", "confidence": 0.82}
+  ],
+  "keywords": ["business", "proposal", "strategy", "revenue"],
+  "severity": "Important",
+  "markdown_content": "# Document content...",
+  "summary_content": "AI-generated summary...",
+  "corrected_content": "Corrected markdown..."
+}
+```
+
+**Note:** If no features are specified, all available features are applied by default.
 
 ## LLM-Powered Document Processing (Optional)
 
@@ -136,14 +224,31 @@ POST /api/convert
 Content-Type: multipart/form-data
 
 Parameters:
-- file: Document file to convert
+- file: Document file to convert (required)
+- features: Comma-separated list of features to apply (optional)
+  Available: title_prediction, markdown_extraction, document_categorization,
+            keyword_extraction, severity_classification, summarization, correction
+
+Example:
+curl -X POST http://localhost:5000/api/convert \
+  -F "file=@document.pdf" \
+  -F "features=title_prediction,document_categorization,keyword_extraction"
 
 Response:
 {
     "success": true,
     "id": 1,
     "filename": "document.pdf",
+    "predicted_title": "Business Report Q4 2024",
+    "categories": [
+        {"category": "Business", "confidence": 0.95},
+        {"category": "Report", "confidence": 0.87}
+    ],
+    "keywords": ["business", "revenue", "strategy", "growth"],
+    "severity": "Important",
     "markdown_content": "# Document content...",
+    "summary_content": "AI-generated summary...",
+    "corrected_content": "Corrected content...",
     "upload_time": "2024-01-01T12:00:00",
     "file_size": 1024
 }
@@ -187,7 +292,10 @@ Response:
 markitdown-api/
 ├── app.py                 # Main Flask application
 ├── models.py              # Database models
+├── analysis_utils.py      # Document analysis utilities (NEW!)
+├── llm_utils.py           # LLM processing utilities
 ├── ocr_utils.py           # OCR utility functions for scanned PDFs
+├── migrate_db.py          # Database migration script
 ├── requirements.txt       # Python dependencies
 ├── templates/             # HTML templates
 │   ├── base.html

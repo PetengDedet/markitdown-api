@@ -17,6 +17,70 @@
                         <span class="file-text">Choose a file or drag it here</span>
                     </label>
                 </div>
+                
+                <div class="features-section">
+                    <h3>📋 Select Analysis Features</h3>
+                    <p class="features-subtitle">Choose which features to apply to your document</p>
+                    
+                    <div class="features-grid">
+                        <label class="feature-checkbox">
+                            <input type="checkbox" name="feature" value="title_prediction" checked>
+                            <span class="feature-label">
+                                <strong>📝 Title Prediction</strong>
+                                <small>Generate a suggested title</small>
+                            </span>
+                        </label>
+                        
+                        <label class="feature-checkbox">
+                            <input type="checkbox" name="feature" value="markdown_extraction" checked>
+                            <span class="feature-label">
+                                <strong>📄 Markdown Extraction</strong>
+                                <small>Extract markdown content</small>
+                            </span>
+                        </label>
+                        
+                        <label class="feature-checkbox">
+                            <input type="checkbox" name="feature" value="document_categorization" checked>
+                            <span class="feature-label">
+                                <strong>🏷️ Document Categorization</strong>
+                                <small>Predict document categories</small>
+                            </span>
+                        </label>
+                        
+                        <label class="feature-checkbox">
+                            <input type="checkbox" name="feature" value="keyword_extraction" checked>
+                            <span class="feature-label">
+                                <strong>🔑 Keyword Extraction</strong>
+                                <small>Extract key terms</small>
+                            </span>
+                        </label>
+                        
+                        <label class="feature-checkbox">
+                            <input type="checkbox" name="feature" value="severity_classification" checked>
+                            <span class="feature-label">
+                                <strong>⚡ Severity Classification</strong>
+                                <small>Predict importance level</small>
+                            </span>
+                        </label>
+                        
+                        <label class="feature-checkbox">
+                            <input type="checkbox" name="feature" value="summarization" checked>
+                            <span class="feature-label">
+                                <strong>📊 Summarization</strong>
+                                <small>Generate concise summary (requires LLM)</small>
+                            </span>
+                        </label>
+                        
+                        <label class="feature-checkbox">
+                            <input type="checkbox" name="feature" value="correction" checked>
+                            <span class="feature-label">
+                                <strong>✅ Correction</strong>
+                                <small>Fix spelling & grammar (requires LLM)</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                
                 <button type="submit" class="btn btn-primary" id="uploadBtn">
                     <span class="btn-text">Convert to Markdown</span>
                     <span class="spinner" style="display: none;"></span>
@@ -34,6 +98,78 @@
         </div>
     </div>
 </div>
+
+<style>
+.features-section {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.features-section h3 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 1.2em;
+}
+
+.features-subtitle {
+    margin: 0 0 15px 0;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 10px;
+}
+
+.feature-checkbox {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.feature-checkbox:hover {
+    border-color: #0066cc;
+    background: #f0f7ff;
+}
+
+.feature-checkbox input[type="checkbox"] {
+    margin: 4px 10px 0 0;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+.feature-checkbox input[type="checkbox"]:checked + .feature-label {
+    color: #0066cc;
+}
+
+.feature-label {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.feature-label strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.95em;
+}
+
+.feature-label small {
+    color: #666;
+    font-size: 0.85em;
+    line-height: 1.3;
+}
+</style>
 
 <script>
 const uploadForm = document.getElementById('uploadForm');
@@ -87,9 +223,14 @@ uploadForm.addEventListener('submit', async (e) => {
     // Add user message
     addMessage('user', `Uploading: ${file.name} (${formatFileSize(file.size)})`);
     
+    // Get selected features
+    const selectedFeatures = Array.from(document.querySelectorAll('input[name="feature"]:checked'))
+        .map(cb => cb.value);
+    
     // Create form data
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('features', selectedFeatures.join(','));
     
     try {
         const response = await fetch('/api/convert', {
@@ -122,22 +263,83 @@ uploadForm.addEventListener('submit', async (e) => {
                     </div>`;
             }
             
+            // Show categories if available
+            if (data.categories && data.categories.length > 0) {
+                resultHtml += `
+                    <div class="markdown-content" style="background: #fff3e0; border-left: 4px solid #ff9800;">
+                        <h4>🏷️ Document Categories:</h4>
+                        <div class="category-list">`;
+                data.categories.forEach(cat => {
+                    const confidence = (cat.confidence * 100).toFixed(0);
+                    resultHtml += `
+                        <span class="category-badge" style="background: #ff9800; color: white; padding: 4px 12px; border-radius: 12px; margin: 4px; display: inline-block;">
+                            ${escapeHtml(cat.category)} (${confidence}%)
+                        </span>`;
+                });
+                resultHtml += `</div></div>`;
+            }
+            
+            // Show keywords if available
+            if (data.keywords && data.keywords.length > 0) {
+                resultHtml += `
+                    <div class="markdown-content" style="background: #e8f5e9; border-left: 4px solid #4caf50;">
+                        <h4>🔑 Keywords:</h4>
+                        <div class="keyword-list">`;
+                data.keywords.forEach(kw => {
+                    resultHtml += `
+                        <span class="keyword-badge" style="background: #4caf50; color: white; padding: 4px 12px; border-radius: 12px; margin: 4px; display: inline-block;">
+                            ${escapeHtml(kw)}
+                        </span>`;
+                });
+                resultHtml += `</div></div>`;
+            }
+            
+            // Show severity if available
+            if (data.severity) {
+                const severityColors = {
+                    'Critical': '#f44336',
+                    'Important': '#ff9800',
+                    'Normal': '#2196f3',
+                    'Low Priority': '#9e9e9e'
+                };
+                const color = severityColors[data.severity] || '#2196f3';
+                resultHtml += `
+                    <div class="markdown-content" style="background: ${color}20; border-left: 4px solid ${color};">
+                        <h4>⚡ Severity Level:</h4>
+                        <p style="font-size: 1.1em; font-weight: 500; color: ${color}; margin: 0.5em 0;">
+                            ${escapeHtml(data.severity)}
+                        </p>
+                    </div>`;
+            }
+            
             // Show summary if available
             if (data.summary_content) {
                 resultHtml += `
                     <div class="markdown-content">
-                        <h4>🤖 AI-Processed Summary & Corrections:</h4>
+                        <h4>🤖 AI-Generated Summary:</h4>
                         <pre>${escapeHtml(data.summary_content)}</pre>
                     </div>`;
             }
             
-            // Show original markdown
-            resultHtml += `
+            // Show corrected content if available
+            if (data.corrected_content) {
+                resultHtml += `
                     <div class="markdown-content">
-                        <h4>${data.summary_content ? 'Original Markdown Content:' : 'Markdown Content:'}</h4>
+                        <h4>✅ Corrected Content:</h4>
+                        <pre>${escapeHtml(data.corrected_content)}</pre>
+                    </div>`;
+            }
+            
+            // Show original markdown
+            if (data.markdown_content) {
+                resultHtml += `
+                    <div class="markdown-content">
+                        <h4>${data.summary_content || data.corrected_content ? 'Original Markdown Content:' : 'Markdown Content:'}</h4>
                         <pre>${escapeHtml(data.markdown_content)}</pre>
-                    </div>
-                </div>`;
+                    </div>`;
+            }
+            
+            resultHtml += `</div>`;
             
             addMessage('assistant', resultHtml);
             
