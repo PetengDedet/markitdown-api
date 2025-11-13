@@ -54,6 +54,7 @@ class Conversion(Base):
     filename = Column(String(255), nullable=False)
     original_path = Column(String(500), nullable=False)
     markdown_content = Column(Text, nullable=False)
+    summary_content = Column(Text)  # LLM-processed summary and corrections
     upload_time = Column(DateTime, default=datetime.utcnow)
     file_size = Column(Integer)  # in bytes
     
@@ -63,6 +64,7 @@ class Conversion(Base):
             'id': self.id,
             'filename': self.filename,
             'markdown_content': self.markdown_content,
+            'summary_content': self.summary_content,
             'upload_time': self.upload_time.isoformat(),
             'file_size': self.file_size
         }
@@ -109,6 +111,10 @@ def init_default_config(session):
         ('max_file_size', '10485760'),  # 10MB in bytes
         ('processing_timeout', '300'),  # 5 minutes in seconds
         ('max_ocr_pages', '50'),  # Maximum number of pages to process with OCR
+        ('llm_enabled', 'false'),  # Enable/disable LLM processing
+        ('llm_task', 'summarize_and_correct'),  # Task type: summarize_and_correct or correct_only
+        ('llm_max_tokens', '2048'),  # Maximum tokens for LLM generation
+        ('llm_temperature', '0.7'),  # Temperature for LLM sampling
     ]
     
     for key, value in configs:

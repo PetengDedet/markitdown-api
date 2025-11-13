@@ -35,6 +35,11 @@ instance/
 # Uploads
 uploads/
 
+# LLM Models
+models/
+*.gguf
+*.bin
+
 # IDE
 .vscode/
 .idea/
