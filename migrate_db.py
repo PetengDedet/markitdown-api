@@ -25,7 +25,7 @@ def check_column_exists(cursor, table_name, column_name):
 
 
 def migrate_database(db_path):
-    """Add summary_content column to conversions table if it doesn't exist."""
+    """Add new analysis columns to conversions table if they don't exist."""
     
     if not os.path.exists(db_path):
         print(f"Database file not found: {db_path}")
@@ -66,6 +66,54 @@ def migrate_database(db_path):
         else:
             print("✓ Column 'predicted_title' already exists")
         
+        # Check and add categories column if needed
+        if not check_column_exists(cursor, 'conversions', 'categories'):
+            print("Adding 'categories' column to 'conversions' table...")
+            cursor.execute("""
+                ALTER TABLE conversions 
+                ADD COLUMN categories TEXT
+            """)
+            migration_performed = True
+            print("✓ Successfully added 'categories' column")
+        else:
+            print("✓ Column 'categories' already exists")
+        
+        # Check and add keywords column if needed
+        if not check_column_exists(cursor, 'conversions', 'keywords'):
+            print("Adding 'keywords' column to 'conversions' table...")
+            cursor.execute("""
+                ALTER TABLE conversions 
+                ADD COLUMN keywords TEXT
+            """)
+            migration_performed = True
+            print("✓ Successfully added 'keywords' column")
+        else:
+            print("✓ Column 'keywords' already exists")
+        
+        # Check and add severity column if needed
+        if not check_column_exists(cursor, 'conversions', 'severity'):
+            print("Adding 'severity' column to 'conversions' table...")
+            cursor.execute("""
+                ALTER TABLE conversions 
+                ADD COLUMN severity VARCHAR(50)
+            """)
+            migration_performed = True
+            print("✓ Successfully added 'severity' column")
+        else:
+            print("✓ Column 'severity' already exists")
+        
+        # Check and add corrected_content column if needed
+        if not check_column_exists(cursor, 'conversions', 'corrected_content'):
+            print("Adding 'corrected_content' column to 'conversions' table...")
+            cursor.execute("""
+                ALTER TABLE conversions 
+                ADD COLUMN corrected_content TEXT
+            """)
+            migration_performed = True
+            print("✓ Successfully added 'corrected_content' column")
+        else:
+            print("✓ Column 'corrected_content' already exists")
+        
         if not migration_performed:
             print("No migration needed - all columns already exist.")
             conn.close()
@@ -93,7 +141,7 @@ def main():
     """Main migration function."""
     print("=" * 70)
     print("MarkItDown API Database Migration")
-    print("Adding LLM fields (summary_content, predicted_title) to conversions table")
+    print("Adding analysis fields (categories, keywords, severity, corrections)")
     print("=" * 70)
     print()
     

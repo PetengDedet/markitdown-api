@@ -9,9 +9,17 @@ from markitdown import MarkItDown
 from models import init_db, get_session, init_default_user, init_default_config, User, Conversion, AppConfig
 from ocr_utils import convert_pdf_with_ocr_fallback, extract_text_from_image
 from llm_utils import process_document, initialize_llm, get_model_info, generate_title
+from analysis_utils import (
+    extract_keywords, 
+    predict_categories, 
+    predict_severity, 
+    predict_title_simple,
+    extract_text_statistics
+)
 import threading
 import queue
 import logging
+import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -306,6 +314,19 @@ def convert_document():
     if not allowed_file(file.filename):
         return jsonify({'error': 'File type not allowed'}), 400
     
+    # Get selected features from request
+    features = request.form.get('features', '')
+    selected_features = set(features.split(',')) if features else set()
+    
+    # Available features
+    FEATURE_TITLE = 'title_prediction'
+    FEATURE_MARKDOWN = 'markdown_extraction'
+    FEATURE_CATEGORY = 'document_categorization'
+    FEATURE_KEYWORDS = 'keyword_extraction'
+    FEATURE_SEVERITY = 'severity_classification'
+    FEATURE_SUMMARY = 'summarization'
+    FEATURE_CORRECTION = 'correction'
+    
     filepath = None
     try:
         # Save the uploaded file
@@ -336,7 +357,7 @@ def convert_document():
                 result = md.convert(filepath)
                 return result.text_content
         
-        # Convert to markdown with timeout
+        # Convert to markdown with timeout (always performed)
         try:
             markdown_content = run_with_timeout(do_conversion, timeout_duration=timeout_seconds)
         except TimeoutError:
@@ -345,51 +366,126 @@ def convert_document():
                 os.remove(filepath)
             return jsonify({'error': f'Processing timeout exceeded ({timeout_seconds} seconds)'}), 408
         
-        # Process with LLM if enabled
+        # Initialize result variables
         summary_content = None
+        corrected_content = None
         predicted_title = None
+        categories_data = None
+        keywords_data = None
+        severity_data = None
+        
+        # Check if LLM is enabled for title, summary, and correction
         llm_enabled_config = db_session.query(AppConfig).filter_by(key='llm_enabled').first()
         llm_enabled = llm_enabled_config and llm_enabled_config.value.lower() == 'true'
         
-        if llm_enabled:
+        # Process Title Prediction
+        if FEATURE_TITLE in selected_features or not selected_features:
             try:
-                # Get LLM configuration
-                llm_task_config = db_session.query(AppConfig).filter_by(key='llm_task').first()
-                llm_task = llm_task_config.value if llm_task_config else 'summarize_and_correct'
+                if llm_enabled:
+                    # Use LLM for title generation
+                    predicted_title = generate_title(markdown_content, max_tokens=50, temperature=0.5)
+                    if predicted_title:
+                        logger.info(f"Generated title (LLM): {predicted_title}")
                 
-                llm_max_tokens_config = db_session.query(AppConfig).filter_by(key='llm_max_tokens').first()
-                llm_max_tokens = int(llm_max_tokens_config.value) if llm_max_tokens_config else 2048
-                
-                llm_temperature_config = db_session.query(AppConfig).filter_by(key='llm_temperature').first()
-                llm_temperature = float(llm_temperature_config.value) if llm_temperature_config else 0.7
-                
-                logger.info(f"Processing with LLM: task={llm_task}, max_tokens={llm_max_tokens}, temp={llm_temperature}")
-                
-                # Generate document title
-                predicted_title = generate_title(markdown_content, max_tokens=50, temperature=0.5)
-                if predicted_title:
-                    logger.info(f"Generated title: {predicted_title}")
-                else:
-                    logger.warning("Title generation returned no content")
-                
-                # Process document with LLM
-                summary_content = process_document(
-                    markdown_content,
-                    task=llm_task,
-                    max_tokens=llm_max_tokens,
-                    temperature=llm_temperature
-                )
-                
-                if summary_content:
-                    logger.info("LLM processing completed successfully")
-                else:
-                    logger.warning("LLM processing returned no content")
-                    
+                # Fallback to simple heuristics if LLM fails or not enabled
+                if not predicted_title:
+                    predicted_title = predict_title_simple(markdown_content)
+                    if predicted_title:
+                        logger.info(f"Generated title (heuristic): {predicted_title}")
+                        
             except Exception as e:
-                # Log error but don't fail the conversion
-                logger.error(f"LLM processing error: {str(e)}")
-                summary_content = None
+                logger.error(f"Title prediction error: {str(e)}")
                 predicted_title = None
+        
+        # Process Categorization
+        if FEATURE_CATEGORY in selected_features or not selected_features:
+            try:
+                categories = predict_categories(markdown_content)
+                if categories:
+                    categories_data = json.dumps(categories)
+                    logger.info(f"Predicted {len(categories)} categories")
+            except Exception as e:
+                logger.error(f"Category prediction error: {str(e)}")
+        
+        # Process Keyword Extraction
+        if FEATURE_KEYWORDS in selected_features or not selected_features:
+            try:
+                keywords = extract_keywords(markdown_content, max_keywords=10)
+                if keywords:
+                    keywords_data = json.dumps(keywords)
+                    logger.info(f"Extracted {len(keywords)} keywords")
+            except Exception as e:
+                logger.error(f"Keyword extraction error: {str(e)}")
+        
+        # Process Severity Classification
+        if FEATURE_SEVERITY in selected_features or not selected_features:
+            try:
+                severity = predict_severity(markdown_content)
+                if severity:
+                    severity_data = severity.get('severity', 'Normal')
+                    logger.info(f"Predicted severity: {severity_data}")
+            except Exception as e:
+                logger.error(f"Severity prediction error: {str(e)}")
+        
+        # Process Summarization
+        if FEATURE_SUMMARY in selected_features or not selected_features:
+            if llm_enabled:
+                try:
+                    # Get LLM configuration
+                    llm_max_tokens_config = db_session.query(AppConfig).filter_by(key='llm_max_tokens').first()
+                    llm_max_tokens = int(llm_max_tokens_config.value) if llm_max_tokens_config else 2048
+                    
+                    llm_temperature_config = db_session.query(AppConfig).filter_by(key='llm_temperature').first()
+                    llm_temperature = float(llm_temperature_config.value) if llm_temperature_config else 0.7
+                    
+                    logger.info(f"Processing summarization with LLM")
+                    
+                    # Process document with LLM for summarization
+                    summary_content = process_document(
+                        markdown_content,
+                        task='summarize_and_correct',
+                        max_tokens=llm_max_tokens,
+                        temperature=llm_temperature
+                    )
+                    
+                    if summary_content:
+                        logger.info("Summarization completed successfully")
+                    else:
+                        logger.warning("Summarization returned no content")
+                        
+                except Exception as e:
+                    logger.error(f"Summarization error: {str(e)}")
+                    summary_content = None
+        
+        # Process Correction
+        if FEATURE_CORRECTION in selected_features or not selected_features:
+            if llm_enabled:
+                try:
+                    # Get LLM configuration
+                    llm_max_tokens_config = db_session.query(AppConfig).filter_by(key='llm_max_tokens').first()
+                    llm_max_tokens = int(llm_max_tokens_config.value) if llm_max_tokens_config else 2048
+                    
+                    llm_temperature_config = db_session.query(AppConfig).filter_by(key='llm_temperature').first()
+                    llm_temperature = float(llm_temperature_config.value) if llm_temperature_config else 0.7
+                    
+                    logger.info(f"Processing correction with LLM")
+                    
+                    # Process document with LLM for correction only
+                    corrected_content = process_document(
+                        markdown_content,
+                        task='correct_only',
+                        max_tokens=llm_max_tokens,
+                        temperature=llm_temperature
+                    )
+                    
+                    if corrected_content:
+                        logger.info("Correction completed successfully")
+                    else:
+                        logger.warning("Correction returned no content")
+                        
+                except Exception as e:
+                    logger.error(f"Correction error: {str(e)}")
+                    corrected_content = None
         
         # Save to database
         conversion = Conversion(
@@ -398,22 +494,47 @@ def convert_document():
             markdown_content=markdown_content,
             summary_content=summary_content,
             predicted_title=predicted_title,
-            file_size=file_size
+            file_size=file_size,
+            categories=categories_data,
+            keywords=keywords_data,
+            severity=severity_data,
+            corrected_content=corrected_content
         )
         db_session.add(conversion)
         db_session.commit()
         
-        # Return response
-        return jsonify({
+        # Return response with all available data
+        response_data = {
             'success': True,
             'id': conversion.id,
             'filename': conversion.filename,
-            'markdown_content': conversion.markdown_content,
-            'summary_content': conversion.summary_content,
-            'predicted_title': conversion.predicted_title,
             'upload_time': conversion.upload_time.isoformat(),
             'file_size': conversion.file_size
-        })
+        }
+        
+        # Add features based on selection or defaults
+        if FEATURE_MARKDOWN in selected_features or not selected_features:
+            response_data['markdown_content'] = conversion.markdown_content
+        
+        if predicted_title:
+            response_data['predicted_title'] = predicted_title
+        
+        if categories_data:
+            response_data['categories'] = json.loads(categories_data)
+        
+        if keywords_data:
+            response_data['keywords'] = json.loads(keywords_data)
+        
+        if severity_data:
+            response_data['severity'] = severity_data
+        
+        if summary_content:
+            response_data['summary_content'] = summary_content
+        
+        if corrected_content:
+            response_data['corrected_content'] = corrected_content
+        
+        return jsonify(response_data)
     
     except Exception as e:
         # Clean up the file if it exists
