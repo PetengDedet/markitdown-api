@@ -68,7 +68,9 @@ def test_database_model():
         from models import init_db, get_session, init_default_config, Conversion, AppConfig
         
         # Create temporary database
-        test_db = tempfile.mktemp(suffix='.db')
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as temp_db_file:
+            test_db = temp_db_file.name
+        
         engine = init_db(f'sqlite:///{test_db}')
         session = get_session(engine)
         
@@ -131,7 +133,9 @@ def test_app_integration():
         from models import init_db, get_session, init_default_config, AppConfig
         
         # Create test database
-        test_db = tempfile.mktemp(suffix='.db')
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as temp_db_file:
+            test_db = temp_db_file.name
+        
         engine = init_db(f'sqlite:///{test_db}')
         session = get_session(engine)
         init_default_config(session)
