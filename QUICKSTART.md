@@ -69,9 +69,19 @@ Use the default credentials:
 ### Upload Your First Document
 
 1. Click **"Upload"** in the navigation bar
-2. Drag a document file or click to browse
-3. Click **"Convert to Markdown"**
-4. View the conversion result in the chat interface!
+2. **Select Analysis Features**: Choose which features to apply using the checkboxes:
+   - ✅ **Title Prediction** - Generate a suggested title
+   - ✅ **Markdown Extraction** - Extract markdown content
+   - ✅ **Document Categorization** - Classify into categories
+   - ✅ **Keyword Extraction** - Extract key terms
+   - ✅ **Severity Classification** - Determine importance level
+   - ✅ **Summarization** - Generate summary (requires LLM)
+   - ✅ **Correction** - Fix spelling/grammar (requires LLM)
+3. Drag a document file or click to browse
+4. Click **"Convert to Markdown"**
+5. View the conversion result with all selected features in the chat interface!
+
+**Note**: All features except Summarization and Correction work locally without additional setup. For LLM-powered features, see the [LLM Setup Guide](LLM_SETUP.md).
 
 ### View Conversion History
 
@@ -108,12 +118,27 @@ curl -c cookies.txt -X POST http://localhost:5000/login \
   -d "username=admin&password=admin"
 ```
 
-### Convert a Document
+### Convert a Document with Feature Selection
 
 ```bash
+# Convert with specific features
+curl -b cookies.txt -X POST http://localhost:5000/api/convert \
+  -F "file=@document.pdf" \
+  -F "features=title_prediction,document_categorization,keyword_extraction"
+
+# Convert with all features (default if not specified)
 curl -b cookies.txt -X POST http://localhost:5000/api/convert \
   -F "file=@document.pdf"
 ```
+
+**Available Features:**
+- `title_prediction` - Generate document title
+- `markdown_extraction` - Extract markdown content
+- `document_categorization` - Classify into categories
+- `keyword_extraction` - Extract keywords
+- `severity_classification` - Determine importance
+- `summarization` - Generate summary (requires LLM)
+- `correction` - Fix spelling/grammar (requires LLM)
 
 ### List Conversions
 
