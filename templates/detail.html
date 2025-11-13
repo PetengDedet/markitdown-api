@@ -14,6 +14,11 @@
         <div class="detail-section">
             <div class="info-card">
                 <h2>File Information</h2>
+                {% if conversion.predicted_title %}
+                <div class="info-item">
+                    <strong>Predicted Title:</strong> {{ conversion.predicted_title }}
+                </div>
+                {% endif %}
                 <div class="info-item">
                     <strong>Filename:</strong> {{ conversion.filename }}
                 </div>

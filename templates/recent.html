@@ -12,16 +12,18 @@
             <thead>
                 <tr>
                     <th>ID</th>
+                    <th>Title</th>
                     <th>Filename</th>
                     <th>Upload Time</th>
                     <th>File Size</th>
-                    <th>Preview</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for conversion in conversions %}
                 <tr>
                     <td>{{ conversion.id }}</td>
+                    <td>{{ conversion.predicted_title or 'N/A' }}</td>
                     <td>{{ conversion.filename }}</td>
                     <td>{{ conversion.upload_time.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                     <td>{{ "%.2f"|format(conversion.file_size / 1024) }} KB</td>

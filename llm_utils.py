@@ -176,6 +176,74 @@ def process_document(
         return None
 
 
+def generate_title(
+    markdown_content: str,
+    max_tokens: int = 50,
+    temperature: float = 0.5
+) -> Optional[str]:
+    """
+    Generate a predicted title for the document content using the LLM.
+    
+    Args:
+        markdown_content: The markdown content to analyze
+        max_tokens: Maximum tokens for title generation (default: 50)
+        temperature: Sampling temperature (default: 0.5 for more focused output)
+        
+    Returns:
+        Optional[str]: Predicted title, or None if generation failed
+    """
+    global _llm_model
+    
+    if not is_model_loaded():
+        logger.warning("LLM model not loaded, attempting to initialize")
+        if not initialize_llm():
+            logger.error("Failed to initialize LLM model")
+            return None
+    
+    try:
+        # Create a specialized prompt for title generation
+        prompt = f"""<|im_start|>system
+You are a helpful assistant that generates concise document titles. Your task is to:
+1. Read the document content carefully
+2. Identify the main topic and purpose
+3. Generate a clear, descriptive title (max 10-15 words)
+4. Output ONLY the title without any additional text or formatting
+
+For documents in Bahasa Indonesia, provide the title in Bahasa Indonesia.
+For documents in English, provide the title in English.<|im_end|>
+<|im_start|>user
+Generate a title for this document:
+
+{markdown_content[:2000]}<|im_end|>
+<|im_start|>assistant
+"""
+        
+        # Generate title
+        logger.info("Generating document title with LLM")
+        response = _llm_model(
+            prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            stop=["<|im_end|>", "<|endoftext|>", "\n\n"],
+            echo=False
+        )
+        
+        # Extract generated text
+        if response and 'choices' in response and len(response['choices']) > 0:
+            title = response['choices'][0]['text'].strip()
+            # Clean up the title - remove quotes, extra whitespace, etc.
+            title = title.strip('"\'').strip()
+            logger.info(f"Successfully generated title: {title}")
+            return title
+        else:
+            logger.error("No title generated from LLM")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Error generating title with LLM: {str(e)}")
+        return None
+
+
 def get_model_info() -> Dict[str, any]:
     """
     Get information about the current LLM model.

@@ -113,6 +113,15 @@ uploadForm.addEventListener('submit', async (e) => {
                         </div>
                     </div>`;
             
+            // Show predicted title if available
+            if (data.predicted_title) {
+                resultHtml += `
+                    <div class="markdown-content" style="background: #f0f7ff; border-left: 4px solid #0066cc;">
+                        <h4>📝 Predicted Title:</h4>
+                        <p style="font-size: 1.1em; font-weight: 500; margin: 0.5em 0;">${escapeHtml(data.predicted_title)}</p>
+                    </div>`;
+            }
+            
             // Show summary if available
             if (data.summary_content) {
                 resultHtml += `

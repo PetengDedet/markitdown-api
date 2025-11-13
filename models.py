@@ -55,6 +55,7 @@ class Conversion(Base):
     original_path = Column(String(500), nullable=False)
     markdown_content = Column(Text, nullable=False)
     summary_content = Column(Text)  # LLM-processed summary and corrections
+    predicted_title = Column(String(500))  # LLM-predicted document title
     upload_time = Column(DateTime, default=datetime.utcnow)
     file_size = Column(Integer)  # in bytes
     
@@ -65,6 +66,7 @@ class Conversion(Base):
             'filename': self.filename,
             'markdown_content': self.markdown_content,
             'summary_content': self.summary_content,
+            'predicted_title': self.predicted_title,
             'upload_time': self.upload_time.isoformat(),
             'file_size': self.file_size
         }

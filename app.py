@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from markitdown import MarkItDown
 from models import init_db, get_session, init_default_user, init_default_config, User, Conversion, AppConfig
 from ocr_utils import convert_pdf_with_ocr_fallback, extract_text_from_image
-from llm_utils import process_document, initialize_llm, get_model_info
+from llm_utils import process_document, initialize_llm, get_model_info, generate_title
 import threading
 import queue
 import logging
@@ -347,6 +347,7 @@ def convert_document():
         
         # Process with LLM if enabled
         summary_content = None
+        predicted_title = None
         llm_enabled_config = db_session.query(AppConfig).filter_by(key='llm_enabled').first()
         llm_enabled = llm_enabled_config and llm_enabled_config.value.lower() == 'true'
         
@@ -363,6 +364,13 @@ def convert_document():
                 llm_temperature = float(llm_temperature_config.value) if llm_temperature_config else 0.7
                 
                 logger.info(f"Processing with LLM: task={llm_task}, max_tokens={llm_max_tokens}, temp={llm_temperature}")
+                
+                # Generate document title
+                predicted_title = generate_title(markdown_content, max_tokens=50, temperature=0.5)
+                if predicted_title:
+                    logger.info(f"Generated title: {predicted_title}")
+                else:
+                    logger.warning("Title generation returned no content")
                 
                 # Process document with LLM
                 summary_content = process_document(
@@ -381,6 +389,7 @@ def convert_document():
                 # Log error but don't fail the conversion
                 logger.error(f"LLM processing error: {str(e)}")
                 summary_content = None
+                predicted_title = None
         
         # Save to database
         conversion = Conversion(
@@ -388,6 +397,7 @@ def convert_document():
             original_path=filepath,
             markdown_content=markdown_content,
             summary_content=summary_content,
+            predicted_title=predicted_title,
             file_size=file_size
         )
         db_session.add(conversion)
@@ -400,6 +410,7 @@ def convert_document():
             'filename': conversion.filename,
             'markdown_content': conversion.markdown_content,
             'summary_content': conversion.summary_content,
+            'predicted_title': conversion.predicted_title,
             'upload_time': conversion.upload_time.isoformat(),
             'file_size': conversion.file_size
         })

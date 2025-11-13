@@ -39,37 +39,47 @@ def migrate_database(db_path):
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
-        # Check if summary_content column already exists
-        if check_column_exists(cursor, 'conversions', 'summary_content'):
-            print("✓ Column 'summary_content' already exists in 'conversions' table")
-            print("No migration needed.")
+        # Track if any migration was performed
+        migration_performed = False
+        
+        # Check and add summary_content column if needed
+        if not check_column_exists(cursor, 'conversions', 'summary_content'):
+            print("Adding 'summary_content' column to 'conversions' table...")
+            cursor.execute("""
+                ALTER TABLE conversions 
+                ADD COLUMN summary_content TEXT
+            """)
+            migration_performed = True
+            print("✓ Successfully added 'summary_content' column")
+        else:
+            print("✓ Column 'summary_content' already exists")
+        
+        # Check and add predicted_title column if needed
+        if not check_column_exists(cursor, 'conversions', 'predicted_title'):
+            print("Adding 'predicted_title' column to 'conversions' table...")
+            cursor.execute("""
+                ALTER TABLE conversions 
+                ADD COLUMN predicted_title VARCHAR(500)
+            """)
+            migration_performed = True
+            print("✓ Successfully added 'predicted_title' column")
+        else:
+            print("✓ Column 'predicted_title' already exists")
+        
+        if not migration_performed:
+            print("No migration needed - all columns already exist.")
             conn.close()
             return True
-        
-        # Add the new column
-        print("Adding 'summary_content' column to 'conversions' table...")
-        cursor.execute("""
-            ALTER TABLE conversions 
-            ADD COLUMN summary_content TEXT
-        """)
         
         conn.commit()
         
-        # Verify the column was added
-        if check_column_exists(cursor, 'conversions', 'summary_content'):
-            print("✓ Successfully added 'summary_content' column")
-            
-            # Get count of existing records
-            cursor.execute("SELECT COUNT(*) FROM conversions")
-            count = cursor.fetchone()[0]
-            print(f"✓ Existing records ({count}) will have NULL summary_content (can be filled later)")
-            
-            conn.close()
-            return True
-        else:
-            print("✗ Failed to add column")
-            conn.close()
-            return False
+        # Get count of existing records
+        cursor.execute("SELECT COUNT(*) FROM conversions")
+        count = cursor.fetchone()[0]
+        print(f"✓ Existing records ({count}) will have NULL for new columns (can be filled later)")
+        
+        conn.close()
+        return True
             
     except sqlite3.Error as e:
         print(f"✗ Database error: {e}")
@@ -83,7 +93,7 @@ def main():
     """Main migration function."""
     print("=" * 70)
     print("MarkItDown API Database Migration")
-    print("Adding LLM summary_content field to conversions table")
+    print("Adding LLM fields (summary_content, predicted_title) to conversions table")
     print("=" * 70)
     print()
     
