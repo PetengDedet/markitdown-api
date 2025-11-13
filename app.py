@@ -8,13 +8,19 @@ from werkzeug.utils import secure_filename
 from markitdown import MarkItDown
 from models import init_db, get_session, init_default_user, init_default_config, User, Conversion, AppConfig
 from ocr_utils import convert_pdf_with_ocr_fallback, extract_text_from_image
+from llm_utils import process_document, initialize_llm, get_model_info, generate_title
 import threading
 import queue
+import logging
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -207,19 +213,67 @@ def config_page():
                 config.value = max_ocr_pages
                 db_session.commit()
                 flash('Max OCR pages updated', 'success')
+        
+        # Update LLM enabled
+        llm_enabled = request.form.get('llm_enabled')
+        if llm_enabled is not None:
+            config = db_session.query(AppConfig).filter_by(key='llm_enabled').first()
+            if config:
+                config.value = 'true' if llm_enabled == 'on' else 'false'
+                db_session.commit()
+                flash('LLM processing setting updated', 'success')
+        
+        # Update LLM task
+        llm_task = request.form.get('llm_task')
+        if llm_task:
+            config = db_session.query(AppConfig).filter_by(key='llm_task').first()
+            if config:
+                config.value = llm_task
+                db_session.commit()
+                flash('LLM task updated', 'success')
+        
+        # Update LLM max tokens
+        llm_max_tokens = request.form.get('llm_max_tokens')
+        if llm_max_tokens:
+            config = db_session.query(AppConfig).filter_by(key='llm_max_tokens').first()
+            if config:
+                config.value = llm_max_tokens
+                db_session.commit()
+                flash('LLM max tokens updated', 'success')
+        
+        # Update LLM temperature
+        llm_temperature = request.form.get('llm_temperature')
+        if llm_temperature:
+            config = db_session.query(AppConfig).filter_by(key='llm_temperature').first()
+            if config:
+                config.value = llm_temperature
+                db_session.commit()
+                flash('LLM temperature updated', 'success')
     
     # Get current config
     allowed_ext_config = db_session.query(AppConfig).filter_by(key='allowed_extensions').first()
     max_size_config = db_session.query(AppConfig).filter_by(key='max_file_size').first()
     processing_timeout_config = db_session.query(AppConfig).filter_by(key='processing_timeout').first()
     max_ocr_pages_config = db_session.query(AppConfig).filter_by(key='max_ocr_pages').first()
+    llm_enabled_config = db_session.query(AppConfig).filter_by(key='llm_enabled').first()
+    llm_task_config = db_session.query(AppConfig).filter_by(key='llm_task').first()
+    llm_max_tokens_config = db_session.query(AppConfig).filter_by(key='llm_max_tokens').first()
+    llm_temperature_config = db_session.query(AppConfig).filter_by(key='llm_temperature').first()
+    
+    # Get LLM model info
+    model_info = get_model_info()
     
     return render_template('config.html', 
                          username=current_user.username,
                          allowed_extensions=allowed_ext_config.value if allowed_ext_config else '',
                          max_file_size=max_size_config.value if max_size_config else '',
                          processing_timeout=processing_timeout_config.value if processing_timeout_config else '300',
-                         max_ocr_pages=max_ocr_pages_config.value if max_ocr_pages_config else '50')
+                         max_ocr_pages=max_ocr_pages_config.value if max_ocr_pages_config else '50',
+                         llm_enabled=llm_enabled_config.value if llm_enabled_config else 'false',
+                         llm_task=llm_task_config.value if llm_task_config else 'summarize_and_correct',
+                         llm_max_tokens=llm_max_tokens_config.value if llm_max_tokens_config else '2048',
+                         llm_temperature=llm_temperature_config.value if llm_temperature_config else '0.7',
+                         llm_model_info=model_info)
 
 
 @app.route('/recent')
@@ -291,11 +345,59 @@ def convert_document():
                 os.remove(filepath)
             return jsonify({'error': f'Processing timeout exceeded ({timeout_seconds} seconds)'}), 408
         
+        # Process with LLM if enabled
+        summary_content = None
+        predicted_title = None
+        llm_enabled_config = db_session.query(AppConfig).filter_by(key='llm_enabled').first()
+        llm_enabled = llm_enabled_config and llm_enabled_config.value.lower() == 'true'
+        
+        if llm_enabled:
+            try:
+                # Get LLM configuration
+                llm_task_config = db_session.query(AppConfig).filter_by(key='llm_task').first()
+                llm_task = llm_task_config.value if llm_task_config else 'summarize_and_correct'
+                
+                llm_max_tokens_config = db_session.query(AppConfig).filter_by(key='llm_max_tokens').first()
+                llm_max_tokens = int(llm_max_tokens_config.value) if llm_max_tokens_config else 2048
+                
+                llm_temperature_config = db_session.query(AppConfig).filter_by(key='llm_temperature').first()
+                llm_temperature = float(llm_temperature_config.value) if llm_temperature_config else 0.7
+                
+                logger.info(f"Processing with LLM: task={llm_task}, max_tokens={llm_max_tokens}, temp={llm_temperature}")
+                
+                # Generate document title
+                predicted_title = generate_title(markdown_content, max_tokens=50, temperature=0.5)
+                if predicted_title:
+                    logger.info(f"Generated title: {predicted_title}")
+                else:
+                    logger.warning("Title generation returned no content")
+                
+                # Process document with LLM
+                summary_content = process_document(
+                    markdown_content,
+                    task=llm_task,
+                    max_tokens=llm_max_tokens,
+                    temperature=llm_temperature
+                )
+                
+                if summary_content:
+                    logger.info("LLM processing completed successfully")
+                else:
+                    logger.warning("LLM processing returned no content")
+                    
+            except Exception as e:
+                # Log error but don't fail the conversion
+                logger.error(f"LLM processing error: {str(e)}")
+                summary_content = None
+                predicted_title = None
+        
         # Save to database
         conversion = Conversion(
             filename=filename,
             original_path=filepath,
             markdown_content=markdown_content,
+            summary_content=summary_content,
+            predicted_title=predicted_title,
             file_size=file_size
         )
         db_session.add(conversion)
@@ -307,6 +409,8 @@ def convert_document():
             'id': conversion.id,
             'filename': conversion.filename,
             'markdown_content': conversion.markdown_content,
+            'summary_content': conversion.summary_content,
+            'predicted_title': conversion.predicted_title,
             'upload_time': conversion.upload_time.isoformat(),
             'file_size': conversion.file_size
         })

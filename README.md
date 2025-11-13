@@ -6,6 +6,7 @@ A Flask-based REST API and web interface for converting documents to Markdown fo
 
 - 📤 **File Upload & Conversion**: Upload documents (.docx, .pdf, .txt, etc.) and convert them to Markdown
 - 🔍 **OCR Support**: Automatic OCR for scanned PDFs using Tesseract and pdf2image
+- 🤖 **LLM-Powered Summarization**: Local AI processing using Qwen1.5-1.8B for spell-check, grammar correction, and summarization (optional)
 - 🔐 **Authentication**: Secure login system with username/password protection
 - ⚙️ **Configuration**: Web interface to manage app settings and credentials
 - 📊 **Recent Conversions**: View history of all document conversions
@@ -59,6 +60,43 @@ python app.py
 ```
 
 The application will start on `http://localhost:5000`
+
+## LLM-Powered Document Processing (Optional)
+
+MarkItDown API now supports **local AI processing** for document summarization and correction using the Qwen1.5-1.8B model. This feature:
+
+- ✅ Corrects spelling and grammar (optimized for **Bahasa Indonesia** and English)
+- ✅ Reformats markdown for better readability  
+- ✅ Summarizes content into concise paragraphs
+- ✅ Runs **100% locally** - no external API calls
+- ✅ Uses quantized models for efficient resource usage (~1GB model, ~3GB RAM)
+
+### Quick Setup
+
+**For new installations:**
+
+1. Download the Qwen1.5-1.8B quantized model:
+```bash
+mkdir -p models
+wget https://huggingface.co/Qwen/Qwen1.5-1.8B-Chat-GGUF/resolve/main/qwen1_5-1_8b-chat-q4_k_m.gguf -O models/qwen1.5-1.8b-q4_k_m.gguf
+```
+
+2. Enable LLM processing in the Settings page of the web interface
+
+3. Configure options (task type, max tokens, temperature)
+
+**For upgrading existing installations:**
+
+1. Run the database migration script first:
+```bash
+python migrate_db.py
+```
+
+2. Then follow steps 1-3 above
+
+**For detailed instructions**, see [LLM_SETUP.md](LLM_SETUP.md)
+
+**Note**: LLM processing is optional and disabled by default. The application works normally without it.
 
 ## OCR Support for Scanned PDFs
 
@@ -188,6 +226,7 @@ Application settings can be modified through the web interface or directly in th
 - Werkzeug 3.0.3 - Password hashing and utilities
 - pdf2image 1.16.3 - PDF to image conversion for OCR
 - pytesseract 0.3.10 - Python wrapper for Tesseract OCR
+- llama-cpp-python 0.2.90 - Local LLM inference (optional, for Qwen1.5-1.8B)
 
 ### System Dependencies
 - Tesseract OCR - Optical Character Recognition engine for scanned PDFs
